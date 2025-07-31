@@ -1,5 +1,5 @@
 """
-Main GUI for Derivative Pricing Application
+Main GUI for Derivative Pricing Application - Version corrigée
 """
 
 import tkinter as tk
@@ -79,6 +79,7 @@ class DerivativePricingGUI:
         # Analysis menu
         analysis_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Analysis", menu=analysis_menu)
+        analysis_menu.add_command(label="Price All Models", command=self.price_options)
         analysis_menu.add_command(label="Calculate Greeks", command=self.calculate_greeks)
         analysis_menu.add_command(label="Sensitivity Analysis", command=self.sensitivity_analysis)
         analysis_menu.add_command(label="Model Comparison", command=self.compare_models)
@@ -113,6 +114,8 @@ class DerivativePricingGUI:
         self.charts_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.charts_tab, text="Charts & Analysis")
         self.chart_manager = ChartManager(self.charts_tab)
+        # IMPORTANT: Connecter le chart manager au pricing engine
+        self.chart_manager.set_pricing_engine(self.pricing_engine)
         
         # Greeks Tab
         self.greeks_tab = ttk.Frame(self.notebook)
@@ -313,6 +316,10 @@ class DerivativePricingGUI:
     def price_options(self):
         """Price options using all models"""
         try:
+            if not self.pricing_engine.models:
+                messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                return
+            
             self.update_status("Pricing options...")
             
             # Get pricing results
@@ -333,6 +340,10 @@ class DerivativePricingGUI:
     def calculate_greeks(self):
         """Calculate Greeks for all models"""
         try:
+            if not self.pricing_engine.models:
+                messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                return
+                
             self.update_status("Calculating Greeks...")
             
             greeks_results = self.pricing_engine.calculate_greeks_all_models()
@@ -417,6 +428,10 @@ class DerivativePricingGUI:
         
         def run_analysis():
             try:
+                if not self.pricing_engine.models:
+                    messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                    return
+                    
                 param = param_var.get()
                 range_pct = range_var.get() / 100
                 
@@ -438,6 +453,10 @@ class DerivativePricingGUI:
     def greeks_sensitivity(self):
         """Greeks sensitivity analysis"""
         try:
+            if not self.pricing_engine.models:
+                messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                return
+                
             # This would create charts showing how Greeks change with underlying parameters
             self.chart_manager.plot_greeks_sensitivity(self.pricing_engine)
             self.notebook.select(self.charts_tab)
@@ -448,13 +467,27 @@ class DerivativePricingGUI:
     def compare_models(self):
         """Compare all models"""
         try:
+            if not self.pricing_engine.models:
+                messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                return
+            
+            # S'assurer qu'on a des résultats de pricing
+            if not self.pricing_engine.results:
+                self.update_status("No pricing results found. Running pricing first...")
+                self.pricing_engine.price_all_models()
+            
             comparison = self.pricing_engine.compare_models()
             
-            # Display comparison
+            # Display comparison dans Results tab
             self.results_display.display_model_comparison(comparison)
+            
+            # ET afficher le graphique de comparaison
+            self.chart_manager.plot_model_comparison(comparison)
+            
+            # Aller aux résultats d'abord, puis l'utilisateur peut voir les charts
             self.notebook.select(self.results_tab)
             
-            self.update_status("Model comparison completed")
+            self.update_status("Model comparison completed. Check Charts tab for visualization.")
             
         except Exception as e:
             messagebox.showerror("Error", f"Model comparison failed: {e}")
@@ -462,6 +495,10 @@ class DerivativePricingGUI:
     def calibrate_models(self):
         """Calibrate models to market data"""
         try:
+            if not self.pricing_engine.models:
+                messagebox.showwarning("Warning", "No models configured. Please setup models first.")
+                return
+                
             self.update_status("Calibrating models...")
             
             # For demonstration, create synthetic market data

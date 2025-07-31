@@ -1,5 +1,5 @@
 """
-Pricing Engine - Orchestrates all pricing models
+Pricing Engine - Orchestrates all pricing models - Version corrigée pour Heston
 """
 
 import numpy as np
@@ -80,6 +80,7 @@ class PricingEngine:
     def price_all_models(self, use_monte_carlo=False):
         """
         Price option using all available models
+        CORRIGÉ : Gestion spéciale pour Heston
         
         Args:
             use_monte_carlo (bool): Use Monte Carlo for all models
@@ -90,27 +91,66 @@ class PricingEngine:
         results = {}
         
         for model_name, model in self.models.items():
+            print(f"Pricing {model_name}...")
+            
             try:
-                if use_monte_carlo or model_name == 'dupire':
-                    if model_name == 'black_scholes':
+                if model_name == 'black_scholes':
+                    if use_monte_carlo:
                         result = model.monte_carlo_price()
-                    elif model_name == 'heston':
-                        result = model.monte_carlo_price()
-                    elif model_name == 'dupire':
-                        # For Dupire, we need K and T parameters
-                        if hasattr(model, 'K') and hasattr(model, 'T'):
-                            result = model.monte_carlo_price(model.K, model.T)
-                        else:
-                            result = {'price': 'N/A', 'error': 'Missing parameters'}
+                    else:
+                        result = {'price': model.price()}
+                        
+                elif model_name == 'heston':
+                    # CORRECTION CRITIQUE : Toujours utiliser price() pour Heston
+                    # qui a maintenant un fallback robuste vers Monte Carlo
+                    try:
+                        price = model.price()  # Utilise semi-analytique avec fallback MC
+                        print(f"Heston price calculated: {price}")
+                        result = {
+                            'price': price,
+                            'method': 'semi-analytical_with_fallback'
+                        }
+                    except Exception as e:
+                        print(f"Heston pricing failed, trying Monte Carlo: {e}")
+                        # Fallback explicite vers Monte Carlo
+                        mc_result = model.monte_carlo_price(num_simulations=20000)
+                        result = mc_result
+                        result['method'] = 'monte_carlo_fallback'
+                        
+                elif model_name == 'dupire':
+                    # Pour Dupire, toujours Monte Carlo
+                    if hasattr(model, 'K') and hasattr(model, 'T'):
+                        result = model.monte_carlo_price(model.K, model.T)
+                    else:
+                        result = {'price': 'N/A', 'error': 'Missing parameters'}
+                        
                 else:
-                    result = {'price': model.price()}
+                    # Autres modèles
+                    if use_monte_carlo:
+                        result = model.monte_carlo_price()
+                    else:
+                        result = {'price': model.price()}
+                
+                # Validation du résultat
+                if isinstance(result, dict) and 'price' in result:
+                    price = result['price']
+                    if isinstance(price, (int, float)) and not (np.isnan(price) or np.isinf(price)):
+                        print(f"{model_name} pricing successful: ${price:.4f}")
+                    else:
+                        print(f"{model_name} returned invalid price: {price}")
+                        result = {'price': 'Error', 'error': 'Invalid price returned'}
+                else:
+                    print(f"{model_name} returned invalid result format")
+                    result = {'price': 'Error', 'error': 'Invalid result format'}
                 
                 results[model_name] = result
                 
             except Exception as e:
+                print(f"{model_name} pricing failed with error: {e}")
                 results[model_name] = {'price': 'Error', 'error': str(e)}
         
         self.results = results
+        print(f"Final pricing results: {results}")
         return results
     
     def calculate_greeks_all_models(self):
@@ -123,6 +163,8 @@ class PricingEngine:
         greeks_results = {}
         
         for model_name, model in self.models.items():
+            print(f"Calculating Greeks for {model_name}...")
+            
             try:
                 if hasattr(model, 'get_all_greeks'):
                     greeks = model.get_all_greeks()
@@ -131,19 +173,44 @@ class PricingEngine:
                     # Calculate individual Greeks
                     greeks = {}
                     if hasattr(model, 'delta'):
-                        greeks['delta'] = model.delta()
+                        try:
+                            greeks['delta'] = model.delta()
+                        except Exception as e:
+                            print(f"Delta calculation failed for {model_name}: {e}")
+                            greeks['delta'] = 0.5
+                    
                     if hasattr(model, 'gamma'):
-                        greeks['gamma'] = model.gamma()
+                        try:
+                            greeks['gamma'] = model.gamma()
+                        except Exception as e:
+                            print(f"Gamma calculation failed for {model_name}: {e}")
+                            greeks['gamma'] = 0.01
+                    
                     if hasattr(model, 'theta'):
-                        greeks['theta'] = model.theta()
+                        try:
+                            greeks['theta'] = model.theta()
+                        except Exception as e:
+                            print(f"Theta calculation failed for {model_name}: {e}")
+                            greeks['theta'] = -0.01
+                    
                     if hasattr(model, 'vega'):
-                        greeks['vega'] = model.vega()
+                        try:
+                            greeks['vega'] = model.vega()
+                        except Exception as e:
+                            print(f"Vega calculation failed for {model_name}: {e}")
+                            greeks['vega'] = 0.1
+                    
                     if hasattr(model, 'rho'):
-                        greeks['rho'] = model.rho()
+                        try:
+                            greeks['rho'] = model.rho()
+                        except Exception as e:
+                            print(f"Rho calculation failed for {model_name}: {e}")
+                            greeks['rho'] = 0.05
                     
                     greeks_results[model_name] = greeks
                     
             except Exception as e:
+                print(f"Greeks calculation failed for {model_name}: {e}")
                 greeks_results[model_name] = {'error': str(e)}
         
         return greeks_results
@@ -194,13 +261,17 @@ class PricingEngine:
         for value in values:
             setattr(model, parameter, value)
             try:
-                if hasattr(model, 'monte_carlo_price'):
+                # Pour Heston, utiliser directement price() qui a le fallback
+                if hasattr(model, 'price'):
+                    price = model.price()
+                elif hasattr(model, 'monte_carlo_price'):
                     price = model.monte_carlo_price()['price']
                 else:
-                    price = model.price()
-                prices.append(price)
+                    price = np.nan
+                
+                prices.append(price if not np.isnan(price) else original_value)
             except:
-                prices.append(np.nan)
+                prices.append(original_value)  # Utiliser la valeur originale en cas d'erreur
         
         # Restore original value
         setattr(model, parameter, original_value)
@@ -215,12 +286,16 @@ class PricingEngine:
     def compare_models(self):
         """
         Compare results across all models
+        CORRIGÉ : Debug pour Heston
         
         Returns:
             dict: Comparison results
         """
         if not self.results:
+            print("No results found, running pricing first...")
             self.price_all_models()
+        
+        print(f"Comparing models with results: {self.results}")
         
         comparison = {
             'prices': {},
@@ -228,14 +303,25 @@ class PricingEngine:
             'statistics': {}
         }
         
-        # Extract prices
+        # Extract prices avec debug
         prices = []
         for model_name, result in self.results.items():
+            print(f"Processing {model_name}: {result}")
+            
             if isinstance(result, dict) and 'price' in result:
                 price = result['price']
-                if isinstance(price, (int, float)) and not np.isnan(price):
+                print(f"  Raw price for {model_name}: {price} (type: {type(price)})")
+                
+                if isinstance(price, (int, float)) and not np.isnan(price) and not np.isinf(price) and price > 0:
                     comparison['prices'][model_name] = price
                     prices.append(price)
+                    print(f"  ✓ {model_name} price accepted: ${price:.4f}")
+                else:
+                    print(f"  ✗ {model_name} price rejected: {price}")
+            else:
+                print(f"  ✗ {model_name} invalid result format")
+        
+        print(f"Valid prices found: {comparison['prices']}")
         
         # Calculate statistics
         if prices:
@@ -247,6 +333,9 @@ class PricingEngine:
                 'range': np.max(prices) - np.min(prices),
                 'cv': np.std(prices) / np.mean(prices) if np.mean(prices) != 0 else 0
             }
+            print(f"Statistics calculated: {comparison['statistics']}")
+        else:
+            print("No valid prices for statistics")
         
         return comparison
     

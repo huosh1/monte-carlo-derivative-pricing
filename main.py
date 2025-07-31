@@ -28,9 +28,6 @@ def check_dependencies():
         print("❌ Modules manquants détectés:")
         for module in missing_modules:
             print(f"   - {module}")
-        print("\n🔧 Solution:")
-        print("1. Utilisez le script install.bat pour installer automatiquement")
-        print("2. Ou installez manuellement: pip install " + " ".join(missing_modules))
         return False
     
     print("✅ Toutes les dépendances sont installées!")
@@ -40,7 +37,7 @@ def main():
     """
     Main entry point for the derivative pricing application
     """
-    print("🚀 Lancement de Monte Carlo Derivative Pricing Tool")
+    print("Lancement de Monte Carlo Derivative Pricing Tool")
     print("=" * 55)
     
     # Vérifier les dépendances
@@ -70,17 +67,10 @@ def main():
         
     except ImportError as e:
         print(f"❌ Erreur d'importation: {e}")
-        print("\n🔧 Solutions possibles:")
-        print("1. Exécutez install.bat pour installer les dépendances")
-        print("2. Vérifiez que Python est correctement installé")
-        print("3. Installez manuellement: pip install matplotlib numpy pandas scipy")
-        input("\nAppuyez sur Entrée pour quitter...")
         sys.exit(1)
         
     except Exception as e:
         print(f"❌ Erreur lors du démarrage: {e}")
-        print("\n🔧 Vérifiez que toutes les dépendances sont installées")
-        input("\nAppuyez sur Entrée pour quitter...")
         sys.exit(1)
 
 if __name__ == "__main__":

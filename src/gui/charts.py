@@ -1,9 +1,9 @@
 """
-Charts and Visualization Module
+Charts and Visualization Module - Version corrigée
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -29,7 +29,12 @@ class ChartManager:
         self.parent = parent
         self.current_figure = None
         self.current_canvas = None
+        self.pricing_engine = None  # Sera défini par la GUI principale
         self.setup_chart_interface()
+    
+    def set_pricing_engine(self, pricing_engine):
+        """Définir le moteur de pricing"""
+        self.pricing_engine = pricing_engine
     
     def setup_chart_interface(self):
         """Setup chart interface"""
@@ -38,21 +43,31 @@ class ChartManager:
         control_frame.pack(fill='x', padx=10, pady=5)
         
         # Chart type selection
-        ttk.Label(control_frame, text="Chart Type:").pack(side='left', padx=5)
+        ttk.Label(control_frame, text="Chart Type:").grid(row=0, column=0, sticky='w', padx=5)
         
         self.chart_type_var = tk.StringVar(value="sensitivity")
         chart_types = [
             ("Sensitivity Analysis", "sensitivity"),
-            ("Monte Carlo Paths", "paths"),
+            ("Monte Carlo Paths", "paths"), 
             ("Greeks Analysis", "greeks"),
-            ("Volatility Surface", "vol_surface"),
             ("Price Convergence", "convergence"),
             ("Model Comparison", "comparison")
         ]
         
-        for text, value in chart_types:
+        for i, (text, value) in enumerate(chart_types):
             ttk.Radiobutton(control_frame, text=text, variable=self.chart_type_var, 
-                          value=value).pack(side='left', padx=5)
+                          value=value, command=self.on_chart_type_change).grid(row=0, column=i+1, padx=5)
+        
+        # Generate button
+        ttk.Button(control_frame, text="Generate Chart", 
+                  command=self.generate_selected_chart).grid(row=0, column=len(chart_types)+1, padx=10)
+        
+        # Model selection for paths
+        self.model_var = tk.StringVar(value="black_scholes")
+        ttk.Label(control_frame, text="Model for Paths:").grid(row=1, column=0, sticky='w', padx=5)
+        model_combo = ttk.Combobox(control_frame, textvariable=self.model_var,
+                                  values=["black_scholes", "heston", "dupire"], width=15)
+        model_combo.grid(row=1, column=1, padx=5, pady=5)
         
         # Chart display frame
         self.chart_frame = ttk.LabelFrame(self.parent, text="Charts", padding="10")
@@ -61,6 +76,66 @@ class ChartManager:
         # Create initial empty chart
         self.create_empty_chart()
     
+    def on_chart_type_change(self):
+        """Appelé quand le type de chart change"""
+        # Auto-générer le chart quand on change de type
+        self.generate_selected_chart()
+    
+    def generate_selected_chart(self):
+        """Générer le chart sélectionné"""
+        if not self.pricing_engine:
+            self.create_error_chart("No pricing engine available. Please setup models first.")
+            return
+        
+        chart_type = self.chart_type_var.get()
+        
+        try:
+            if chart_type == "sensitivity":
+                self.plot_default_sensitivity()
+            elif chart_type == "paths":
+                model_name = self.model_var.get()
+                self.plot_monte_carlo_paths(self.pricing_engine, model_name)
+            elif chart_type == "greeks":
+                self.plot_greeks_sensitivity(self.pricing_engine)
+            elif chart_type == "convergence":
+                model_name = self.model_var.get()
+                self.plot_price_convergence(self.pricing_engine, model_name)
+            elif chart_type == "comparison":
+                self.plot_model_comparison_from_engine()
+        except Exception as e:
+            self.create_error_chart(f"Error generating chart: {str(e)}")
+    
+    def plot_default_sensitivity(self):
+        """Plot sensitivity analysis par défaut"""
+        if not self.pricing_engine.models:
+            self.create_error_chart("No models available. Please setup models first.")
+            return
+        
+        # Faire une analyse de sensibilité sur S0 par défaut
+        try:
+            sensitivity_results = self.pricing_engine.perform_sensitivity_analysis('S0', range_pct=0.2, num_points=21)
+            self.plot_sensitivity_analysis(sensitivity_results)
+        except Exception as e:
+            self.create_error_chart(f"Error in sensitivity analysis: {str(e)}")
+    
+    def plot_model_comparison_from_engine(self):
+        """Plot model comparison using pricing engine results"""
+        try:
+            # Obtenir les résultats de pricing
+            if not self.pricing_engine.results:
+                # Si pas de résultats, essayer de les générer
+                self.pricing_engine.price_all_models()
+            
+            comparison_results = self.pricing_engine.compare_models()
+            
+            if not comparison_results.get('prices'):
+                self.create_error_chart("No pricing results available. Please run pricing calculations first.")
+                return
+            
+            self.plot_model_comparison(comparison_results)
+        except Exception as e:
+            self.create_error_chart(f"Error in model comparison: {str(e)}")
+    
     def create_empty_chart(self):
         """Create empty chart placeholder"""
         if self.current_canvas:
@@ -68,10 +143,43 @@ class ChartManager:
         
         self.current_figure = Figure(figsize=(12, 8))
         ax = self.current_figure.add_subplot(111)
-        ax.text(0.5, 0.5, 'Select a chart type and data to display', 
+        ax.text(0.5, 0.5, 'Select a chart type and click "Generate Chart" to display', 
                 ha='center', va='center', transform=ax.transAxes, fontsize=14)
         ax.set_xticks([])
         ax.set_yticks([])
+        ax.set_title('Chart Error', fontsize=14)
+        
+        self.current_canvas = FigureCanvasTkAgg(self.current_figure, self.chart_frame)
+        self.current_canvas.get_tk_widget().pack(fill='both', expand=True)
+        self.current_canvas.draw()
+    
+    def save_current_chart(self, filename=None):
+        """Save current chart to file"""
+        if not self.current_figure:
+            return False
+        
+        if filename is None:
+            from tkinter import filedialog
+            filename = filedialog.asksaveasfilename(
+                title="Save Chart",
+                defaultextension=".png",
+                filetypes=[("PNG files", "*.png"), ("PDF files", "*.pdf"), 
+                          ("SVG files", "*.svg"), ("All files", "*.*")]
+            )
+        
+        if filename:
+            try:
+                self.current_figure.savefig(filename, dpi=300, bbox_inches='tight')
+                return True
+            except Exception as e:
+                print(f"Error saving chart: {e}")
+                return False
+        
+        return False
+    
+    def clear_chart(self):
+        """Clear current chart"""
+        self.create_empty_chart()([])
         
         self.current_canvas = FigureCanvasTkAgg(self.current_figure, self.chart_frame)
         self.current_canvas.get_tk_widget().pack(fill='both', expand=True)
@@ -127,13 +235,14 @@ class ChartManager:
             ax.legend()
             
             # Add statistics text
-            price_range = max(prices) - min(prices)
-            param_range = max(values) - min(values)
-            sensitivity = price_range / param_range if param_range != 0 else 0
-            
-            stats_text = f'Sensitivity: ${sensitivity:.3f} per unit\nPrice Range: ${price_range:.3f}'
-            ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, 
-                   verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+            if len(prices) > 0:
+                price_range = max(prices) - min(prices)
+                param_range = max(values) - min(values)
+                sensitivity = price_range / param_range if param_range != 0 else 0
+                
+                stats_text = f'Sensitivity: ${sensitivity:.3f} per unit\nPrice Range: ${price_range:.3f}'
+                ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, 
+                       verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
         
         self.current_figure.suptitle(f'Sensitivity Analysis - {parameter}', fontsize=16)
         self.current_figure.tight_layout()
@@ -377,96 +486,6 @@ class ChartManager:
         self.current_canvas.get_tk_widget().pack(fill='both', expand=True)
         self.current_canvas.draw()
     
-    def plot_volatility_surface(self, pricing_engine):
-        """
-        Plot volatility surface (for Dupire model)
-        
-        Args:
-            pricing_engine: PricingEngine instance
-        """
-        if self.current_canvas:
-            self.current_canvas.get_tk_widget().destroy()
-        
-        try:
-            if 'dupire' not in pricing_engine.models:
-                self.create_error_chart("Dupire model required for volatility surface")
-                return
-            
-            dupire_model = pricing_engine.models['dupire']
-            
-            if dupire_model.local_vol_surface is None:
-                self.create_error_chart("Local volatility surface not constructed")
-                return
-            
-            # Create mesh for surface plot
-            strikes = np.linspace(dupire_model.strikes.min(), dupire_model.strikes.max(), 50)
-            maturities = np.linspace(dupire_model.maturities.min(), dupire_model.maturities.max(), 30)
-            
-            K_mesh, T_mesh = np.meshgrid(strikes, maturities)
-            vol_surface = np.zeros_like(K_mesh)
-            
-            for i in range(len(maturities)):
-                for j in range(len(strikes)):
-                    vol_surface[i, j] = dupire_model.get_local_volatility(strikes[j], maturities[i])
-            
-            self.current_figure = Figure(figsize=(15, 10))
-            
-            # 3D surface plot
-            ax1 = self.current_figure.add_subplot(2, 2, 1, projection='3d')
-            surf = ax1.plot_surface(K_mesh, T_mesh, vol_surface, cmap='viridis', alpha=0.8)
-            ax1.set_xlabel('Strike')
-            ax1.set_ylabel('Time to Maturity')
-            ax1.set_zlabel('Local Volatility')
-            ax1.set_title('Local Volatility Surface')
-            
-            # Contour plot
-            ax2 = self.current_figure.add_subplot(2, 2, 2)
-            contour = ax2.contour(K_mesh, T_mesh, vol_surface, levels=15)
-            ax2.clabel(contour, inline=True, fontsize=8)
-            ax2.set_xlabel('Strike')
-            ax2.set_ylabel('Time to Maturity')
-            ax2.set_title('Volatility Contours')
-            ax2.grid(True, alpha=0.3)
-            
-            # Volatility smile at different maturities
-            ax3 = self.current_figure.add_subplot(2, 2, 3)
-            for i, T in enumerate([0.25, 0.5, 1.0]):
-                if T <= dupire_model.maturities.max():
-                    vols = [dupire_model.get_local_volatility(K, T) for K in strikes]
-                    ax3.plot(strikes, vols, label=f'T={T:.2f}', linewidth=2)
-            
-            ax3.set_xlabel('Strike')
-            ax3.set_ylabel('Local Volatility')
-            ax3.set_title('Volatility Smile')
-            ax3.legend()
-            ax3.grid(True, alpha=0.3)
-            
-            # Term structure at different strikes
-            ax4 = self.current_figure.add_subplot(2, 2, 4)
-            S0 = dupire_model.S0
-            for strike_mult in [0.9, 1.0, 1.1]:
-                K = S0 * strike_mult
-                if dupire_model.strikes.min() <= K <= dupire_model.strikes.max():
-                    vols = [dupire_model.get_local_volatility(K, T) for T in maturities]
-                    ax4.plot(maturities, vols, label=f'K/S₀={strike_mult:.1f}', linewidth=2)
-            
-            ax4.set_xlabel('Time to Maturity')
-            ax4.set_ylabel('Local Volatility')
-            ax4.set_title('Volatility Term Structure')
-            ax4.legend()
-            ax4.grid(True, alpha=0.3)
-            
-            self.current_figure.suptitle('Local Volatility Surface Analysis', fontsize=16)
-            self.current_figure.tight_layout()
-            
-        except Exception as e:
-            self.create_error_chart(f"Error plotting volatility surface: {e}")
-            return
-        
-        self.current_canvas = FigureCanvasTkAgg(self.current_figure, self.chart_frame)
-        self.current_canvas.get_tk_widget().pack(fill='both', expand=True)
-        self.current_canvas.draw()
-    
     def plot_price_convergence(self, pricing_engine, model_name='black_scholes'):
         """
         Plot Monte Carlo price convergence
@@ -486,7 +505,7 @@ class ChartManager:
             model = pricing_engine.models[model_name]
             
             # Different numbers of simulations
-            sim_counts = [1000, 2000, 5000, 10000, 20000, 50000, 100000]
+            sim_counts = [1000, 2000, 5000, 10000, 20000, 50000]
             prices = []
             std_errors = []
             
@@ -664,37 +683,4 @@ class ChartManager:
                 fontsize=12, color='red', 
                 bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
         ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_title('Chart Error', fontsize=14)
-        
-        self.current_canvas = FigureCanvasTkAgg(self.current_figure, self.chart_frame)
-        self.current_canvas.get_tk_widget().pack(fill='both', expand=True)
-        self.current_canvas.draw()
-    
-    def save_current_chart(self, filename=None):
-        """Save current chart to file"""
-        if not self.current_figure:
-            return False
-        
-        if filename is None:
-            from tkinter import filedialog
-            filename = filedialog.asksaveasfilename(
-                title="Save Chart",
-                defaultextension=".png",
-                filetypes=[("PNG files", "*.png"), ("PDF files", "*.pdf"), 
-                          ("SVG files", "*.svg"), ("All files", "*.*")]
-            )
-        
-        if filename:
-            try:
-                self.current_figure.savefig(filename, dpi=300, bbox_inches='tight')
-                return True
-            except Exception as e:
-                print(f"Error saving chart: {e}")
-                return False
-        
-        return False
-    
-    def clear_chart(self):
-        """Clear current chart"""
-        self.create_empty_chart()
+        ax.set_yticks
