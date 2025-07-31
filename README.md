@@ -6,6 +6,29 @@
 
 ---
 
+## 📚 Table of Contents
+
+- [Executive Summary](#-executive-summary)
+- [Project Objectives](#-project-objectives)
+- [Architecture Overview](#-architecture-overview)
+- [Mathematical Models Implementation](#-mathematical-models-implementation)
+  - [Black-Scholes Model](#1-black-scholes-model)
+  - [Heston Stochastic Volatility Model](#2-heston-stochastic-volatility-model)
+  - [Dupire Local Volatility Model](#3-dupire-local-volatility-model)
+- [Monte Carlo Engine](#-monte-carlo-engine)
+- [Greeks Calculation & Risk Management](#-greeks-calculation--risk-management)
+- [Professional Features](#-professional-features)
+- [Installation & Usage](#-installation--usage)
+- [Validation & Benchmarking](#-validation--benchmarking)
+- [Advanced Analytics](#-advanced-analytics)
+- [Educational Value](#-educational-value)
+- [Technical Specifications](#-technical-specifications)
+- [References & Bibliography](#-references--bibliography)
+- [Project Assessment](#-project-assessment)
+- [Future Enhancements](#-future-enhancements)
+- [Troubleshooting & Support](#-troubleshooting--support)
+- [Disclaimer](#disclaimer)
+
 ## 📊 Executive Summary
 
 This project implements a comprehensive **Monte Carlo derivative pricing tool** for equity options, featuring three advanced mathematical models: **Black-Scholes**, **Heston Stochastic Volatility**, and **Dupire Local Volatility**. The application provides a professional-grade interface for option pricing, Greeks calculation, model calibration, and sophisticated financial analysis.
