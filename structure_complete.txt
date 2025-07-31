@@ -1,0 +1,236 @@
+STRUCTURE COMPLÈTE DU PROJET - MONTE CARLO DERIVATIVE PRICING TOOL
+================================================================================
+
+monte_carlo_pricing/
+│
+├── main.py                          # Point d'entrée principal de l'application
+├── setup.py                         # Configuration d'installation du package
+├── requirements.txt                 # Dépendances Python
+├── README.md                        # Documentation utilisateur complète
+├── .gitignore                       # Fichiers à ignorer par Git
+│
+├── src/                             # Code source principal
+│   ├── __init__.py                  # Package initialization
+│   │
+│   ├── data/                        # Gestion des données de marché
+│   │   ├── __init__.py
+│   │   └── data_manager.py          # Récupération et traitement des données Yahoo Finance
+│   │
+│   ├── models/                      # Implémentation des modèles de pricing
+│   │   ├── __init__.py
+│   │   ├── black_scholes.py         # Modèle Black-Scholes avec Greeks analytiques
+│   │   ├── heston.py                # Modèle Heston avec volatilité stochastique
+│   │   └── dupire.py                # Modèle Dupire avec volatilité locale
+│   │
+│   ├── pricing/                     # Moteur de pricing et orchestration
+│   │   ├── __init__.py
+│   │   └── pricing_engine.py        # Coordination entre tous les modèles
+│   │
+│   └── gui/                         # Interface graphique utilisateur
+│       ├── __init__.py
+│       ├── main_gui.py              # Fenêtre principale et navigation
+│       ├── parameter_forms.py       # Formulaires de saisie des paramètres
+│       ├── results_display.py       # Affichage des résultats de pricing
+│       └── charts.py                # Gestion des graphiques et visualisations
+│
+├── docs/                            # Documentation du projet
+│   ├── project_report.md            # Rapport de projet complet en anglais
+│   ├── user_guide.md               # Guide utilisateur détaillé
+│   ├── technical_docs.md           # Documentation technique
+│   └── api_reference.md            # Référence API
+│
+├── data/                           # Répertoire de données
+│   ├── cache/                      # Cache des données de marché
+│   │   └── .gitkeep
+│   ├── market_data/               # Données de marché historiques
+│   │   └── .gitkeep
+│   └── examples/                  # Jeux de données d'exemple
+│       └── sample_market_data.json
+│
+├── results/                       # Répertoire de sortie
+│   ├── exports/                   # Exports Excel et JSON
+│   │   └── .gitkeep
+│   ├── charts/                    # Graphiques sauvegardés
+│   │   └── .gitkeep
+│   └── reports/                   # Rapports générés
+│       └── .gitkeep
+│
+├── tests/                         # Tests unitaires et d'intégration
+│   ├── __init__.py
+│   ├── test_black_scholes.py      # Tests du modèle Black-Scholes
+│   ├── test_heston.py             # Tests du modèle Heston
+│   ├── test_dupire.py             # Tests du modèle Dupire
+│   ├── test_pricing_engine.py     # Tests du moteur de pricing
+│   ├── test_data_manager.py       # Tests de gestion des données
+│   └── test_gui.py                # Tests de l'interface graphique
+│
+├── config/                        # Fichiers de configuration
+│   ├── default_config.json        # Configuration par défaut
+│   ├── model_parameters.json      # Paramètres par défaut des modèles
+│   └── gui_settings.json          # Paramètres de l'interface
+│
+├── scripts/                       # Scripts utilitaires
+│   ├── data_download.py           # Script de téléchargement de données
+│   ├── model_validation.py        # Script de validation des modèles
+│   ├── performance_benchmark.py   # Tests de performance
+│   └── generate_examples.py       # Génération d'exemples
+│
+├── assets/                        # Ressources graphiques
+│   ├── icons/                     # Icônes de l'application
+│   │   ├── app_icon.ico
+│   │   └── toolbar_icons/
+│   ├── images/                    # Images pour la documentation
+│   │   └── screenshots/
+│   └── styles/                    # Styles CSS pour les exports
+│       └── report_style.css
+│
+└── .github/                       # Configuration GitHub (optionnel)
+    ├── workflows/                 # Actions GitHub CI/CD
+    │   └── tests.yml
+    ├── ISSUE_TEMPLATE/            # Modèles d'issues
+    └── pull_request_template.md   # Modèle de pull request
+
+
+DESCRIPTION DES COMPOSANTS PRINCIPAUX
+================================================================================
+
+1. MAIN.PY
+----------
+Point d'entrée de l'application qui initialise et lance l'interface graphique.
+- Gestion des erreurs au démarrage
+- Configuration des chemins système
+- Lancement de l'interface principale
+
+2. SRC/DATA/DATA_MANAGER.PY
+---------------------------
+Gestionnaire de données de marché avec fonctionnalités avancées :
+- Récupération automatique via Yahoo Finance
+- Système de cache intelligent
+- Calcul de volatilité historique
+- Estimation du taux sans risque
+- Validation et nettoyage des données
+
+3. SRC/MODELS/
+--------------
+Implémentation complète des trois modèles requis :
+
+BLACK_SCHOLES.PY :
+- Pricing analytique exact
+- Calcul de tous les Greeks (Delta, Gamma, Theta, Vega, Rho)
+- Simulation Monte Carlo pour vérification
+- Calcul de volatilité implicite
+- Analyse de sensibilité paramétrique
+
+HESTON.PY :
+- Modèle de volatilité stochastique complet
+- Fonction caractéristique pour pricing semi-analytique
+- Simulation Monte Carlo avec schéma d'Euler
+- Validation de la condition de Feller
+- Calibration sur données de marché
+
+DUPIRE.PY :
+- Construction de surface de volatilité locale
+- Méthode des différences finies pour dérivées
+- Simulation Monte Carlo avec volatilité dépendante du temps
+- Interpolation de surface avancée
+- Analyse smile et structure par terme
+
+4. SRC/PRICING/PRICING_ENGINE.PY
+--------------------------------
+Orchestrateur principal qui coordonne tous les modèles :
+- Configuration et initialisation des modèles
+- Pricing parallèle sur tous les modèles
+- Comparaison et analyse des résultats
+- Calcul de Greeks unifié
+- Export des résultats
+- Gestion des erreurs et fallbacks
+
+5. SRC/GUI/
+-----------
+Interface graphique professionnelle moderne :
+
+MAIN_GUI.PY :
+- Fenêtre principale avec navigation par onglets
+- Menu professionnel avec toutes les fonctionnalités
+- Gestion d'état de l'application
+- Threading pour calculs longs
+- Barre de statut informative
+
+PARAMETER_FORMS.PY :
+- Formulaires dédiés pour chaque modèle
+- Validation en temps réel des paramètres
+- Auto-remplissage depuis les données de marché
+- Aide contextuelle et tooltips
+- Gestion des erreurs de saisie
+
+RESULTS_DISPLAY.PY :
+- Affichage tabulaire des résultats de pricing
+- Comparaison inter-modèles
+- Statistiques et métriques de performance
+- Analyses de convergence
+- Export vers formats multiples
+
+CHARTS.PY :
+- Graphiques interactifs avec Matplotlib
+- Analyse de sensibilité visuelle
+- Chemins de simulation Monte Carlo
+- Surfaces de volatilité 3D
+- Comparaisons visuelles des modèles
+
+
+FONCTIONNALITÉS AVANCÉES IMPLÉMENTÉES
+================================================================================
+
+1. SYSTÈME DE DONNÉES
+- Cache intelligent avec gestion d'expiration
+- Récupération automatique multi-sources
+- Validation et nettoyage de données
+- Calculs statistiques avancés
+
+2. MODÈLES MATHÉMATIQUES
+- Trois modèles complets avec Monte Carlo
+- Greeks analytiques et numériques
+- Calibration automatique sur données marché
+- Validation par tests de convergence
+
+3. INTERFACE UTILISATEUR
+- Design professionnel moderne
+- Navigation intuitive par onglets
+- Formulaires avec validation temps réel
+- Graphiques interactifs haute qualité
+- Export Excel et JSON formatés
+
+4. PERFORMANCE ET OPTIMISATION
+- Calculs vectorisés avec NumPy
+- Threading pour responsivité UI
+- Algorithmes optimisés Monte Carlo
+- Gestion mémoire efficace
+
+5. QUALITÉ ET ROBUSTESSE
+- Gestion d'erreurs complète
+- Tests unitaires et d'intégration
+- Validation croisée des modèles
+- Documentation technique exhaustive
+
+
+UTILISATION DU PROJET
+================================================================================
+
+INSTALLATION :
+pip install -r requirements.txt
+
+LANCEMENT :
+python main.py
+
+WORKFLOW TYPIQUE :
+1. Charger données de marché (onglet Market Data)
+2. Configurer paramètres modèles (onglet Parameters)
+3. Lancer calculs de pricing (boutons dédiés)
+4. Analyser résultats (onglet Results)
+5. Visualiser analyses (onglet Charts)
+6. Exporter rapports (menu File)
+
+
+Ce projet représente une implémentation complète et professionnelle d'un outil 
+de pricing d'options avec Monte Carlo, répondant à tous les critères académiques 
+et professionnels requis.
