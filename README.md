@@ -423,7 +423,7 @@ with pd.ExcelWriter(filename, engine='openpyxl') as writer:
 ### Quick Installation
 ```bash
 # Clone repository
-git clone https://github.com/username/monte-carlo-derivative-pricing.git
+git clone https://github.com/huosh1/monte-carlo-derivative-pricing.git
 cd monte-carlo-derivative-pricing
 
 # Install dependencies
