@@ -1,8 +1,9 @@
 # Monte Carlo Derivative Pricing Tool
-## Professional Financial Engineering Application
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![Academic Project](https://img.shields.io/badge/project-academic-purple.svg)](README.md)
+
+![Aperçu du projet](./screenshot.png)
 
 ---
 
