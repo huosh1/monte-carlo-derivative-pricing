@@ -3,7 +3,11 @@
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![Academic Project](https://img.shields.io/badge/project-academic-purple.svg)](README.md)
 
-![Aperçu du projet](./screenshot.png)
+<p align="center">
+  <img src="./screenshot.png" alt="Capture 1" width="30%">
+  <img src="./screenshot2.png" alt="Capture 2" width="30%">
+  <img src="./screenshot3.png" alt="Capture 3" width="30%">
+</p>
 
 ---
 
