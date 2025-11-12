@@ -7,7 +7,7 @@
 
 <!-- Ligne 1 -->
 <p align="center">
-  <img src="./screenshot.png" alt="Capture 2" width="45%">
+  <img src="./screenshot2.png" alt="Capture 2" width="45%">
   <img src="./screenshot3.png" alt="Capture 3" width="45%">
 </p>
 
