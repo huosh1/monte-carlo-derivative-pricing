@@ -3,16 +3,11 @@
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![Academic Project](https://img.shields.io/badge/project-academic-purple.svg)](README.md)
 
-<h2 align="center">📸 Aperçu du projet</h2>
 
-<!-- Image principale -->
-<p align="center">
-  <img src="./screenshot.png" alt="Aperçu principal" width="70%">
-</p>
 
 <!-- Ligne 1 -->
 <p align="center">
-  <img src="./screenshot2.png" alt="Capture 2" width="45%">
+  <img src="./screenshot.png" alt="Capture 2" width="45%">
   <img src="./screenshot3.png" alt="Capture 3" width="45%">
 </p>
 
